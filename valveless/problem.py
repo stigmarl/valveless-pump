@@ -74,7 +74,7 @@ def driving_conditions_fr(dt, f, psi_ca, z_array, L, D):
         Each row signify values at a certain timestep.
     """
 
-     T = 1/f                         # time of one period
+    T = 1/f                         # time of one period
     Np = int(round(T/float(dt)))    # number of timesteps in one period
 
     omega = 2*np.pi*f

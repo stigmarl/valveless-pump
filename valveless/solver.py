@@ -1,4 +1,6 @@
 import numpy as np
+import constants
+from problem import driving_conditions_mr
 
 
 def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt, Nc):
@@ -63,12 +65,18 @@ def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt
     psi_mz_1 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-dt
     psi_mz_2 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-2*dt
 
+    surface_vibrations_mr = problem.driving_conditions_mr(dt, f, psi_ca, z, L, D)
+    surface_vibrations_fr = problem.driving_conditions_fr(dt, f, psi_ca, z, L, D)
+
+    Np = int(round(T/float(dt)))                # number of timesteps in one period
+
 
     # main iteration loop
     # TODO: make this so that it uses a relaxation method that checks for each period if the system is stable?
     N = t.size
     for i in range(N): 
-        pass
+        t_index = i % Np
+        psi_mr_1, u_fr_1 = set_driving_conditions(psi_mr_1, u_fr_1, z, surface_vibrations_mr[t_index, :], surface_vibrations_fr[t_index, :])
 
 
 def radiation_force(rho_f, u_fr_period, u_fz_period, f, dt, mode):
@@ -192,3 +200,16 @@ def advance_psi_mz(psi_mr, psi_mz, psi_mz_1, u_fz, rho_m, mu_m, dt, r, z, gamma)
     psi = psi / A
 
     return psi 
+
+
+def set_driving_conditions(psi_mr, u_fr, z_array, driving_conditions_mr, driving_conditions_fr):
+    
+    for i in range(z_array.size):
+        index = np.min(np.where(z_array > driving_conditions_mr[i]))
+        psi_mr[index, i] = driving_conditions_mr[i]
+        u_fr[index, i] = driving_conditions_fr[i]
+
+    return psi_mr, u_fr
+
+    
+
