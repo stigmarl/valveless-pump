@@ -40,27 +40,28 @@ def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt
     """
 
     
-    r = np.linspace(0, Lr, Nr+1)            # array of mesh points in r direction
-    z = np.linspace(0, Lz, Nz+1)            # array of mesh points in z direction
+    r = np.linspace(0, Lr, Nr+2)                # array of mesh points in r direction
+    z = np.linspace(0, Lz, Nz+2)                # array of mesh points in z direction
     dr = r[1] - r[0]
     dz = z[0] - z[0]
 
-    T = 1/f                                 # time of one period 
-    t = np.arange(0, Nc*T, dt)              # array of mesh points in time
+    T = 1/f                                     # time of one period 
+    t = np.arange(0, Nc*T, dt)                  # array of mesh points in time
 
-    u_fr = np.zeros((Nr+1,Nz+1))            # fluid velocity in r direction at next timestep
-    u_fr_1 = np.zeros((Nr+1,Nz+1))          # at previous timestep t-dt
+    u_fr = np.zeros((Nr+2,Nz+2))                # fluid velocity in r direction at next timestep
+    u_fr_1 = np.zeros((Nr+2,Nz+2))              # at previous timestep t-dt
+    u_fr_period = np.zeros((Nr+2,Nz+2, T/dt))
 
-    u_fz = np.zeros((Nr+1,Nz+1))            # fluid velocity in z direction
-    u_fz_1 = np.zeros((Nr+1,Nz+1))          # at previous timestep t-dt
+    u_fz = np.zeros((Nr+2,Nz+2))                # fluid velocity in z direction
+    u_fz_1 = np.zeros((Nr+2,Nz+2))              # at previous timestep t-dt
     
-    psi_mr = np.zeros((Nr+1,Nz+1))          # tissue matrix displacement in r direction at next timestep
-    psi_mr_1 = np.zeros((Nr+1,Nz+1))        # at previous timestep t-dt
-    psi_mr_2 = np.zeros((Nr+1,Nz+1))        # at previous timestep t-2*dt
+    psi_mr = np.zeros((Nr+2,Nz+2))              # tissue matrix displacement in r direction at next timestep
+    psi_mr_1 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-dt
+    psi_mr_2 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-2*dt
 
-    psi_mz = np.zeros((Nr+1,Nz+1))          # tissue matrix displacement in z direction at next timestep
-    psi_mz_1 = np.zeros((Nr+1,Nz+1))        # at previous timestep t-dt
-    psi_mz_2 = np.zeros((Nr+1,Nz+1))        # at previous timestep t-2*dt
+    psi_mz = np.zeros((Nr+2,Nz+2))              # tissue matrix displacement in z direction at next timestep
+    psi_mz_1 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-dt
+    psi_mz_2 = np.zeros((Nr+2,Nz+2))            # at previous timestep t-2*dt
 
 
     # main iteration loop
@@ -70,10 +71,124 @@ def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt
         pass
 
 
-def radiation_force(rho_f, u_fr, u_fz, mode):
-    pass 
-
+def radiation_force(rho_f, u_fr_period, u_fz_period, f, dt, mode):
     
+    if mode == 'r':
+        u = u_fr_period.copy()
+    else:
+        u = u_fz_period.copy()
+
+    T = 1/f                             # time per period 
+    Np = int(round(T/dt))               # number of timesteps per period 
+    
+    Rf = np.zeros((u_fr_period.shape[0]-2, u_fr_period[1]-2))
 
 
-        
+
+def advance_u_fr(u_fr, u_fr_1, delta_n_psi_mr, rho_f, eta_f, dt, r, z, gamma):
+    
+    dr = r[1] - r[0]
+    dz = z[0] - z[0]
+
+    A = rho_f/dt
+
+    B = -u_fr[1:-1, 1:-1]/(2*dr) + eta_f(1/(2*r[1:-1]*dr)+ 1/(dr*dr))
+
+    C = -gamma - eta_f/(r[1:-1]**2) - 2*eta_f/(dr**2) - 2*eta_f/(dz**2) + rho_f/dt
+
+    D = u_fr[1:-1,1:-1]/(2*dr) + eta_f(1/(2*r[1:-1]*dr)+ 1/(dr*dr))
+
+    E = -u_fr[1:-1,1:-1]/(2*dz) + eta_f/(dz**2)
+
+    F = u_fr[1:-1,1:-1]/(2*dz) + eta_f/(dz**2)
+
+    G = gamma/dt 
+
+    u = u_fr[2:, 1:-1]*B + u_fr[1:-1, 1:-1]*C + u_fr[:-2, 1:-1]*D + 
+        u_fr[1:-1, 2:]*E + u_fr[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G
+
+    u = u / A
+
+    return u
+
+def advance_u_fz(u_fr, u_fr_1, delta_n_psi_mz, rho_f, eta_f, dt, r, z, gamma):
+    
+    dr = r[1] - r[0]
+    dz = z[0] - z[0]
+
+    A = rho_f/dt
+
+    B = -u_fr[1:-1, 1:-1]/(2*dr) + eta_f(1/(2*r[1:-1]*dr)+ 1/(dr*dr))
+
+    C = -gamma - 2*eta_f/(dr**2) - 2*eta_f/(dz**2) + rho_f/dt
+
+    D = u_fr[1:-1,1:-1]/(2*dr) + eta_f(1/(2*r[1:-1]*dr)+ 1/(dr*dr))
+
+    E = -u_fr[1:-1,1:-1]/(2*dz) + eta_f/(dz**2)
+
+    F = u_fr[1:-1,1:-1]/(2*dz) + eta_f/(dz**2)
+
+    G = gamma/dt 
+
+
+    u = u_fz[2:, 1:-1]*B + u_fz[1:-1, 1:-1]*C + u_fz[:-2, 1:-1]*D + 
+        u_fz[1:-1, 2:]*E + u_fz[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G
+
+    u = u / A
+
+    return u
+
+def advance_psi_mr(psi_mr, psi_mr_1, psi_mz, u_fr, rho_m, mu_m, dt, r, z, gamma):
+    
+    dr = r[1] - r[0]
+    dz = z[0] - z[0]
+
+    A = rho_m/(dt**2) + gamma/dt
+
+    B = -mu_m/(2*r[1:-1,1:-1]*dr)
+
+    C = 2*rho_m/(dt**2) - mu_m/(r[1:-1]**2) - 2*mu_m/(dz**2) + gamma/dt 
+
+    D = - B
+
+    E = -mu_m/(dz**2)
+
+    F = -E 
+
+    G = -rho_m/(dt**2)
+
+    psi = psi_mr[2:, 1:-1]*B + psi_mr[1:-1, 1:-1]*C + psi[:-2, 1:-1]*D +
+          psi_mr[1:-1, 2:]*E + psi_mr[1:-1, :-2]*F + psi_mr_1[1:-1, 1:-1]*G 
+          + mu_m/(2*dz)*( -1/r[1:-1]*(psi_mz[1:-1, 2:] - psi_mz[1:-1, :-2]) - 1/(2*dr)*
+            (psi_mz[2:, 2:] - psi_mz[2:, :-2] - psi_mz[:-2, 2:] + psi_mz[:-2, :-2]))
+          + u_fr[1:-1, 1:-1]*gamma
+
+    psi = psi / A
+
+    return psi 
+
+def advance_psi_mz(psi_mr, psi_mz, psi_mz_1, u_fz, rho_m, mu_m, dt, r, z, gamma):
+    
+    dr = r[1] - r[0]
+    dz = z[0] - z[0]
+
+    A = rho_m/(dt**2) + gamma/dt
+
+    B = mu_m/(dr**2) + mu_m/(2*r[1:-1]*dr)
+
+    C = 2*rho_m/(dt**2) - 2*mu_m/(dr**2) + gamma/dt 
+
+    D = mu_m/(dr**2) - mu_m/(2*r[1:-1]*dr)
+
+    E = -rho_m/(dt**2)
+
+     
+    psi = psi_mz[2:, 1:-1]*B + psi_mz[1:-1,1:-1]*C + psi_mz[:-2, 1:-1]*D
+          + mu_m/(2*dz)*( -1/r[1:-1]*(psi_mr[1:-1, 2:] - psi_mr[1:-1, :-2]) - 1/(2*dr)*
+            (psi_mr[2:, 2:] - psi_mr[2:, :-2] - psi_mr[:-2, 2:] + psi_mr[:-2, :-2]))
+          + gamma*u_fz[1:-1]
+          
+
+    psi = psi / A
+
+    return psi 
