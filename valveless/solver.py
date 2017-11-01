@@ -3,6 +3,60 @@ import constants
 from problem import driving_conditions_mr
 
 
+class Solver(object):
+    def __init__(self, prob, Lr, Lz, Nr, Nz, dt, Nc):
+        self.prob = prob
+        self.Lr = Lr
+        self.Lz = Lz
+        self.Nr = Nr
+        self.Nz = Nz
+        self.dt = dt 
+        self.Nc = Nc
+
+    def setup(self):
+        
+        domain_points = (Nr+2, Nz+2)
+
+        self.r = np.linspace(0, self.Lr, self.Nr+2)                # array of mesh points in r direction
+        self.z = np.linspace(0, self.Lz, self.Nz+2)                # array of mesh points in z direction
+        self.dr = self.r[1] - self.r[0]
+        self.dz = self.z[1] - self.z[0]
+
+        self.T = 1/prob.f                                     # time of one period 
+        self.t = np.arange(0,self.Nc*self.T, self.dt)                  # array of mesh points in time
+
+        self.u_fr = np.zeros(domain_points)                # fluid velocity in r direction at next timestep
+        self.u_fr_1 = np.zeros(domain_points)              # at previous timestep t-dt
+        #u_fr_period = np.zeros((Nr+2,Nz+2, T/dt))
+
+        self.u_fz = np.zeros(domain_points)                # fluid velocity in z direction
+        self.u_fz_1 = np.zeros(domain_points)              # at previous timestep t-dt
+        
+        self.psi_mr = np.zeros(domain_points)              # tissue matrix displacement in r direction at next timestep
+        self.psi_mr_1 = np.zeros(domain_points)            # at previous timestep t-dt
+        self.psi_mr_2 = np.zeros(domain_points)            # at previous timestep t-2*dt
+
+        self.psi_mz = np.zeros(domain_points)              # tissue matrix displacement in z direction at next timestep
+        self.psi_mz_1 = np.zeros(domain_points)            # at previous timestep t-dt
+        self.psi_mz_2 = np.zeros(domain_points)            # at previous timestep t-2*dt
+
+        self.Np = int(round(T/float(dt)))                # number of timesteps in one period
+
+
+    def advance_u_fr(self):
+        pass 
+
+    def advance_u_fz(self):
+        pass
+
+    def advance_psi_mr(self):
+        pass
+
+    def advance_psi_mz(self):
+        pass
+            
+
+
 def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt, Nc):
     """
     Solve 2D valveless pump by finite difference 
