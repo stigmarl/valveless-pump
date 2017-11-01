@@ -44,10 +44,66 @@ class Solver(object):
 
 
     def advance_u_fr(self):
-        pass 
+        psi_n_delta_mr = self.psi_mr-self.psi_mr_1
+        
+        A = self.prob.rho_f/self.dt
+
+        B = -u_fr_1[1:-1, 1:-1]/(2*self.dr) + \
+            self.prob.eta_f(1/(2*self.r[1:-1]*dr)+ 1/(self.dr**2))
+
+        C = -self.prob.gamma - self.prob.eta_f/(self.r[1:-1]**2) - \
+            2*self.prob.eta_f/(self.dr**2) - 2*self.prob.eta_f/(self.dz**2) + self.prob.rho_f/self.dt
+
+        D = self.u_fr_1[1:-1,1:-1]/(2*self.dr) + self.prob.eta_f(1/(2*self.r[1:-1]*self.dr)+ 1/(self.dr**2))
+
+        E = self.u_fr_1[1:-1,1:-1]/(2*self.dz) + self.prob.eta_f/(self.dz**2)
+
+        F = self.u_fr_1[1:-1,1:-1]/(2*self.dz) + self.prob.eta_f/(self.dz**2)
+
+        G = self.prob.gamma/self.dt 
+
+        u = self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
+            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G
+
+        u = u / A
+
+        #TODO: set boundary conditions
+
+        return u
+
+        
 
     def advance_u_fz(self):
-        pass
+        
+        delta_n_psi_mz = self.psi_mz-self.psi_mz_1
+
+        A = self.prob.rho_f/self.dt
+
+        B = -self.u_fr_1[1:-1, 1:-1]/(2*self.dr) + \
+            self.prob.eta_f(1/(2*self.r[1:-1]*self.dr)+ 1/(self.dr**2))
+
+        C = -self.prob.gamma - 2*self.prob.eta_f/(self.dr**2) - \
+            2*self.prob.eta_f/(self.dz**2) + self.prob.rho_f/self.dt
+
+        D = self.u_fr_1[1:-1,1:-1]/(2*self.dr) + \
+            self.prob.eta_f(1/(2*self.r[1:-1]*self.dr)+ 1/(self.dr**2))
+
+        E = -self.u_fr_1[1:-1,1:-1]/(2*self.dz) + self.prob.eta_f/(self.dz**2)
+
+        F = self.u_fr_1[1:-1,1:-1]/(2*self.dz) + self.prob.eta_f/(self.dz**2)
+
+        G = self.prob.gamma/self.dt 
+
+
+        u = self.u_fz_1[2:, 1:-1]*B + self.u_fz_1[1:-1, 1:-1]*C + self.u_fz_1[:-2, 1:-1]*D + \
+            self.u_fz_1[1:-1, 2:]*E + self.u_fz_1[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G
+
+        u = u / A
+
+        #TODO: set boundary conditions
+
+        return u
+            
 
     def advance_psi_mr(self):
         pass
