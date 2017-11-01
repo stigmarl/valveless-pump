@@ -26,8 +26,9 @@ rho_t = 1e3
 rho_m = alpha_m*rho_t
 rho_f = alpha_f*rho_t
 
-# Dynamic viscosity of the tissue matrix [kg/(m*s)] = [Pa*s]
+# Shear modulus the tissue matrix [kg/(m*s)] = [Pa*s]. 
 mu_m = 0
 
-# Dynamic viscosity of the fluid [Pa*s]
-eta_f = 0 
+# Dynamic viscosity of the fluid [Pa*s]. Same as that of blood
+eta_f = 1.2e-3 
+
