@@ -1,4 +1,5 @@
 import numpy as np
+
 import constants
 from problem import driving_conditions_mr
 
@@ -71,7 +72,6 @@ class Solver(object):
 
         return u
 
-        
 
     def advance_u_fz(self):
         
@@ -106,10 +106,58 @@ class Solver(object):
             
 
     def advance_psi_mr(self):
-        pass
+        
+        A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
+
+        B = -self.prob.mu_m/(2*self.r[1:-1,1:-1]*self.dr)
+
+        C = 2*self.prob.rho_m/(self.dt**2) - self.prob.mu_m/(self.r[1:-1]**2) -\
+             2*self.prob.mu_m/(self.dz**2) + self.prob.gamma/self.dt 
+
+        D = - B
+
+        E = -self.prob.mu_m/(self.dz**2)
+
+        F = -E 
+
+        G = -self.prob.rho_m/(self.dt**2)
+
+        psi = self.psi_mr_1[2:, 1:-1]*B + self.psi_mr_1[1:-1, 1:-1]*C + self.psi_mr_1[:-2, 1:-1]*D +\
+            self.psi_mr_1[1:-1, 2:]*E + self.psi_mr_1[1:-1, :-2]*F + self.psi_mr_2[1:-1, 1:-1]*G \
+            + self.prob.mu_m/(2*self.dz)*( -1/self.r[1:-1]*(self.psi_mz_1[1:-1, 2:] - self.psi_mz_1[1:-1, :-2]) - 1/(2*self.dr)*
+                (self.psi_mz_1[2:, 2:] - self.psi_mz_1[2:, :-2] - self.psi_mz_1[:-2, 2:] + self.psi_mz_1[:-2, :-2])) \
+            + self.u_fr_1[1:-1, 1:-1]*self.prob.gamma
+
+        psi = psi / A
+
+        #TODO: set boundary conditions
+
+        return psi    
+
 
     def advance_psi_mz(self):
-        pass
+        A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
+
+        B = self.prob.mu_m/(self.dr**2) + self.prob.mu_m/(2*self.r[1:-1]*self.dr)
+
+        C = 2*self.prob.rho_m/(self.dt**2) - 2*self.prob.mu_m/(self.dr**2) + self.prob.gamma/self.dt 
+
+        D = self.prob.mu_m/(self.dr**2) - self.prob.mu_m/(2*self.r[1:-1]*self.dr)
+
+        E = -self.prob.rho_m/(self.dt**2)
+
+        psi = self.psi_mz_1[2:, 1:-1]*B + self.psi_mz_1[1:-1,1:-1]*C + self.psi_mz_1[:-2, 1:-1]*D + \
+            self.psi_mz_2[1:-1,1:-1]*E \
+          + self.prob.mu_m/(2*self.dz)*( -1/self.r[1:-1]*(self.psi_mr_1[1:-1, 2:] - self.psi_mr_1[1:-1, :-2]) - 1/(2*self.dr)* \
+            (self.psi_mr_1[2:, 2:] - self.psi_mr_1[2:, :-2] - self.psi_mr_1[:-2, 2:] + self.psi_mr_1[:-2, :-2])) \
+          + self.prob.gamma*self.u_fz_1[1:-1]
+          
+
+        psi = psi / A
+
+        #TODO: set boundary conditions
+
+        return psi 
             
 
 
@@ -202,7 +250,7 @@ def radiation_force(rho_f, u_fr_period, u_fz_period, f, dt, mode):
     Rf = np.zeros((u_fr_period.shape[0]-2, u_fr_period[1]-2))
 
 
-
+"""
 def advance_u_fr(u_fr, u_fr_1, delta_n_psi_mr, rho_f, eta_f, dt, r, z, gamma):
     
     dr = r[1] - r[0]
@@ -321,5 +369,4 @@ def set_driving_conditions(psi_mr, u_fr, z_array, driving_conditions_mr, driving
 
     return psi_mr, u_fr
 
-    
-
+  """  
