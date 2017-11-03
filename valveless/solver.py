@@ -41,8 +41,10 @@ class Solver(object):
         self.psi_mz_1 = np.zeros(domain_points)            # at previous timestep t-dt
         self.psi_mz_2 = np.zeros(domain_points)            # at previous timestep t-2*dt
 
-        self.Np = int(round(T/float(dt)))                # number of timesteps in one period
+        self.Np = int(round(T/float(dt)))                  # number of timesteps in one period
 
+        self.radiation_force_fr = np.zeros((Nr,Nz,Np))     # array that stores the values of u_fr from the last period
+        self.radiation_force_fz = self.radiation_force_fr.copy()
 
     def advance_u_fr(self):
         psi_n_delta_mr = self.psi_mr-self.psi_mr_1
@@ -160,6 +162,24 @@ class Solver(object):
         return psi 
             
 
+    def radiation_force(self, i):
+        self.rad_fr[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fr_1[2:, 1:-1] - \
+            self.u_fr_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fr_1[1:-1, 2:] - \
+            self.u_fr_1[1:-1,:-2])/(2*self.dz)
+        
+        self.rad_fz[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fz_1[2:, 1:-1] - \
+            self.u_fz_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fz_1[1:-1, 2:] - \
+            self.u_fz_1[1:-1,:-2])/(2*self.dz)
+
+        if i < Np:          # first period
+            rad_force_fr = np.mean(np.dot(self.rad_fr[:,:,i+1], self.dt), axis=2)
+            rad_force_fz = np.mean(np.dot(self.rad_fz[:,:,i+1], self.dt), axis=2)
+                
+        else:               # second period onwards
+            rad_force_fr = np.mean(np.dot(self.rad_fr[:,:,:], self.dt), axis=2)
+            rad_force_fz = np.mean(np.dot(self.rad_fz[:,:,:], self.dt), axis=2)
+
+        return -self.prob.rho_t*rad_force_fr, -self.prob.rho_t*rad_force_fz
 
 def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt, Nc):
     """
@@ -277,6 +297,7 @@ def advance_u_fr(u_fr, u_fr_1, delta_n_psi_mr, rho_f, eta_f, dt, r, z, gamma):
 
     return u
 
+
 def advance_u_fz(u_fr, u_fr_1, delta_n_psi_mz, rho_f, eta_f, dt, r, z, gamma):
     
     dr = r[1] - r[0]
@@ -303,6 +324,7 @@ def advance_u_fz(u_fr, u_fr_1, delta_n_psi_mz, rho_f, eta_f, dt, r, z, gamma):
     u = u / A
 
     return u
+
 
 def advance_psi_mr(psi_mr, psi_mr_1, psi_mz, u_fr, rho_m, mu_m, dt, r, z, gamma):
     
@@ -332,6 +354,7 @@ def advance_psi_mr(psi_mr, psi_mr_1, psi_mz, u_fr, rho_m, mu_m, dt, r, z, gamma)
     psi = psi / A
 
     return psi 
+
 
 def advance_psi_mz(psi_mr, psi_mz, psi_mz_1, u_fz, rho_m, mu_m, dt, r, z, gamma):
     
