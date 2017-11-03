@@ -28,7 +28,6 @@ class Solver(object):
 
         self.u_fr = np.zeros(domain_points)                # fluid velocity in r direction at next timestep
         self.u_fr_1 = np.zeros(domain_points)              # at previous timestep t-dt
-        #u_fr_period = np.zeros((Nr+2,Nz+2, T/dt))
 
         self.u_fz = np.zeros(domain_points)                # fluid velocity in z direction
         self.u_fz_1 = np.zeros(domain_points)              # at previous timestep t-dt
@@ -43,8 +42,11 @@ class Solver(object):
 
         self.Np = int(round(T/float(dt)))                  # number of timesteps in one period
 
-        self.radiation_force_fr = np.zeros((Nr,Nz,Np))     # array that stores the values of u_fr from the last period
+        self.radiation_force_fr = np.zeros((self.Nr,self.Nz,self.Np))     # array that stores the values of u_fr from the last period
         self.radiation_force_fz = self.radiation_force_fr.copy()
+
+        self.instant_rad_fr = np.zeros((self.Nr, self.Nz))
+        self.instant_rad_fr = np.zeros((self.Nr, self.Nz))
 
     def advance_u_fr(self):
         psi_n_delta_mr = self.psi_mr-self.psi_mr_1
@@ -66,7 +68,8 @@ class Solver(object):
         G = self.prob.gamma/self.dt 
 
         u = self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
-            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G
+            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
+            + self.instant_rad_fr
 
         u = u / A
 
@@ -98,7 +101,8 @@ class Solver(object):
 
 
         u = self.u_fz_1[2:, 1:-1]*B + self.u_fz_1[1:-1, 1:-1]*C + self.u_fz_1[:-2, 1:-1]*D + \
-            self.u_fz_1[1:-1, 2:]*E + self.u_fz_1[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G
+            self.u_fz_1[1:-1, 2:]*E + self.u_fz_1[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G \
+            + self.instant_rad_fz
 
         u = u / A
 
@@ -163,24 +167,29 @@ class Solver(object):
             
 
     def radiation_force(self, i):
-        self.rad_fr[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fr_1[2:, 1:-1] - \
+        self.radiation_force_fr[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fr_1[2:, 1:-1] - \
             self.u_fr_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fr_1[1:-1, 2:] - \
             self.u_fr_1[1:-1,:-2])/(2*self.dz)
         
-        self.rad_fz[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fz_1[2:, 1:-1] - \
+        self.radiation_force_fz[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fz_1[2:, 1:-1] - \
             self.u_fz_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fz_1[1:-1, 2:] - \
             self.u_fz_1[1:-1,:-2])/(2*self.dz)
 
         if i < Np:          # first period
-            rad_force_fr = np.mean(np.dot(self.rad_fr[:,:,i+1], self.dt), axis=2)
-            rad_force_fz = np.mean(np.dot(self.rad_fz[:,:,i+1], self.dt), axis=2)
+            rad_force_fr = np.mean(np.dot(self.radiation_force_fr[:,:,i+1], self.dt), axis=2)
+            rad_force_fz = np.mean(np.dot(self.radiation_force_fz[:,:,i+1], self.dt), axis=2)
                 
         else:               # second period onwards
-            rad_force_fr = np.mean(np.dot(self.rad_fr[:,:,:], self.dt), axis=2)
-            rad_force_fz = np.mean(np.dot(self.rad_fz[:,:,:], self.dt), axis=2)
+            rad_force_fr = np.mean(np.dot(self.radiation_force_fr[:,:,:], self.dt), axis=2)
+            rad_force_fz = np.mean(np.dot(self.radiation_force_fz[:,:,:], self.dt), axis=2)
 
-        return -self.prob.rho_t*rad_force_fr, -self.prob.rho_t*rad_force_fz
+        self.instant_rad_fr = -self.prob.rho_t*rad_force_fr 
+        self.instant_rad_fz = -self.prob.rho_t*rad_force_fz
 
+
+
+
+"""
 def solver(L, f, c_m, psi_ca, a_0, Lr, Lz, Nr, Nz, rho_m, rho_f, mu_m, eta_f, dt, Nc):
     """
     Solve 2D valveless pump by finite difference 
@@ -270,7 +279,7 @@ def radiation_force(rho_f, u_fr_period, u_fz_period, f, dt, mode):
     Rf = np.zeros((u_fr_period.shape[0]-2, u_fr_period[1]-2))
 
 
-"""
+
 def advance_u_fr(u_fr, u_fr_1, delta_n_psi_mr, rho_f, eta_f, dt, r, z, gamma):
     
     dr = r[1] - r[0]
@@ -290,7 +299,7 @@ def advance_u_fr(u_fr, u_fr_1, delta_n_psi_mr, rho_f, eta_f, dt, r, z, gamma):
 
     G = gamma/dt 
 
-    u = u_fr[2:, 1:-1]*B + u_fr[1:-1, 1:-1]*C + u_fr[:-2, 1:-1]*D + 
+    u = u_fr[2:, 1:-1]*B + u_fr[1:-1, 1:-1]*C + u_fr[:-2, 1:-1]*D + \
         u_fr[1:-1, 2:]*E + u_fr[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G
 
     u = u / A
@@ -318,7 +327,7 @@ def advance_u_fz(u_fr, u_fr_1, delta_n_psi_mz, rho_f, eta_f, dt, r, z, gamma):
     G = gamma/dt 
 
 
-    u = u_fz[2:, 1:-1]*B + u_fz[1:-1, 1:-1]*C + u_fz[:-2, 1:-1]*D + 
+    u = u_fz[2:, 1:-1]*B + u_fz[1:-1, 1:-1]*C + u_fz[:-2, 1:-1]*D + \
         u_fz[1:-1, 2:]*E + u_fz[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G
 
     u = u / A
@@ -345,9 +354,9 @@ def advance_psi_mr(psi_mr, psi_mr_1, psi_mz, u_fr, rho_m, mu_m, dt, r, z, gamma)
 
     G = -rho_m/(dt**2)
 
-    psi = psi_mr[2:, 1:-1]*B + psi_mr[1:-1, 1:-1]*C + psi[:-2, 1:-1]*D +
+    psi = psi_mr[2:, 1:-1]*B + psi_mr[1:-1, 1:-1]*C + psi[:-2, 1:-1]*D + \
           psi_mr[1:-1, 2:]*E + psi_mr[1:-1, :-2]*F + psi_mr_1[1:-1, 1:-1]*G 
-          + mu_m/(2*dz)*( -1/r[1:-1]*(psi_mz[1:-1, 2:] - psi_mz[1:-1, :-2]) - 1/(2*dr)*
+          + mu_m/(2*dz)*( -1/r[1:-1]*(psi_mz[1:-1, 2:] - psi_mz[1:-1, :-2]) - 1/(2*dr)* \
             (psi_mz[2:, 2:] - psi_mz[2:, :-2] - psi_mz[:-2, 2:] + psi_mz[:-2, :-2]))
           + u_fr[1:-1, 1:-1]*gamma
 
@@ -393,3 +402,4 @@ def set_driving_conditions(psi_mr, u_fr, z_array, driving_conditions_mr, driving
     return psi_mr, u_fr
 
   """  
+""""""
