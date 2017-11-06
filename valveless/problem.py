@@ -40,7 +40,7 @@ class Problem(object):
         else:
             return 0
 
-    def _vec_psi_c_amplitude(self, z_array): 
+    def vec_psi_c_amplitude(self, z_array): 
         """
         Vectorized version of _psi_c_amplitude.
     
