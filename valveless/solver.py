@@ -1,11 +1,39 @@
 import numpy as np
+import problem
 
-import constants
+import time
 
 
 
 class Solver(object):
+    """
+
+    Class that incapsulates numerical parameters into a single object.
+
+    """
+
+
     def __init__(self, prob, Lr, Lz, Nr, Nz, dt, Nc):
+        """
+        Initializes and sets up the numerical parameters of the Solver.
+
+        Parameters
+        ----------
+        prob: Problem
+            An instance of Problem.
+        Lr: scalar
+            Length of domain in r [cm].
+        Lz: scalar
+            Length of domain in z [cm].
+        Nr: scalar
+            Number of points in r.
+        Nz: scalar
+            Number of points in z.
+        dt: scalar
+            Timestep of each iteration [ms]
+        Nc: scalar
+            Number of cycles to iterate over.
+        """
         self.prob = prob
         self.Lr = Lr
         self.Lz = Lz
@@ -14,42 +42,44 @@ class Solver(object):
         self.dt = dt 
         self.Nc = Nc
 
-    def setup(self):
+        self._setup()
+
+    def _setup(self):
         
         domain_points = (self.Nr+2, self.Nz+2)
 
-        self.r = np.linspace(0, self.Lr, self.Nr+2)                # array of mesh points in r direction
-        self.z = np.linspace(0, self.Lz, self.Nz+2)                # array of mesh points in z direction
+        self.r = np.linspace(0, self.Lr, self.Nr+2)                 # array of mesh points in r direction
+        self.z = np.linspace(0, self.Lz, self.Nz+2)                 # array of mesh points in z direction
         self.dr = self.r[1] - self.r[0]
         self.dz = self.z[1] - self.z[0]
 
-        self.T = 1/self.prob.f                                     # time of one period 
-        self.t = np.arange(0,self.Nc*self.T, self.dt)                  # array of mesh points in time
+        self.T = 1/self.prob.f                                      # time of one period
+        self.t = np.arange(0,self.Nc*self.T, self.dt)               # array of mesh points in time
 
-        self.u_fr = np.zeros(domain_points)                # fluid velocity in r direction at next timestep
-        self.u_fr_1 = np.zeros(domain_points)              # at previous timestep t-dt
+        self.u_fr = np.zeros(domain_points)                         # fluid velocity in r direction at next timestep
+        self.u_fr_1 = np.zeros(domain_points)                       # at previous timestep t-dt
 
-        self.u_fz = np.zeros(domain_points)                # fluid velocity in z direction
-        self.u_fz_1 = np.zeros(domain_points)              # at previous timestep t-dt
+        self.u_fz = np.zeros(domain_points)                         # fluid velocity in z direction
+        self.u_fz_1 = np.zeros(domain_points)                       # at previous timestep t-dt
         
-        self.psi_mr = np.zeros(domain_points)              # tissue matrix displacement in r direction at next timestep
-        self.psi_mr_1 = np.zeros(domain_points)            # at previous timestep t-dt
-        self.psi_mr_2 = np.zeros(domain_points)            # at previous timestep t-2*dt
+        self.psi_mr = np.zeros(domain_points)                       # tissue matrix displacement in r direction at next timestep
+        self.psi_mr_1 = np.zeros(domain_points)                     # at previous timestep t-dt
+        self.psi_mr_2 = np.zeros(domain_points)                     # at previous timestep t-2*dt
 
-        self.psi_mz = np.zeros(domain_points)              # tissue matrix displacement in z direction at next timestep
-        self.psi_mz_1 = np.zeros(domain_points)            # at previous timestep t-dt
-        self.psi_mz_2 = np.zeros(domain_points)            # at previous timestep t-2*dt
+        self.psi_mz = np.zeros(domain_points)                       # tissue matrix displacement in z direction at next timestep
+        self.psi_mz_1 = np.zeros(domain_points)                     # at previous timestep t-dt
+        self.psi_mz_2 = np.zeros(domain_points)                     # at previous timestep t-2*dt
 
-        self.Np = int(round(self.T/float(self.dt)))                  # number of timesteps in one period
+        self.Np = int(round(self.T/float(self.dt)))                 # number of timesteps in one period
 
-        self.radiation_force_fr = np.zeros((self.Nr,self.Nz,self.Np))     # array that stores the values of u_fr from the last period
+        self.radiation_force_fr = np.zeros((self.Nr,self.Nz,self.Np)) # array that stores the values of u_fr from the last period
         self.radiation_force_fz = self.radiation_force_fr.copy()
 
-        self.instant_rad_fr = np.zeros((self.Nr, self.Nz))
-        self.instant_rad_fz = np.zeros((self.Nr, self.Nz))
+        self.instant_rad_fr = np.zeros((self.Nr, self.Nz))          # array that holds radiation force in r at current timestep
+        self.instant_rad_fz = np.zeros((self.Nr, self.Nz))          # array that holds radiation force in z at current timestep
 
-        self.r_array = np.repeat(self.r, self.Nz+2).reshape(self.Nr+2, self.Nz+2)
-        self.z_array = np.repeat(self.z, self.Nr+2).reshape(self.Nr+2, self.Nz+2)
+        self.r_array = np.repeat(self.r, self.Nz+2).reshape(self.Nr+2, self.Nz+2) # array of r values in whole domain
+        self.z_array = np.repeat(self.z, self.Nr+2).reshape(self.Nr+2, self.Nz+2) # array of z values in whole domain
 
     def iterate(self):
         
@@ -82,11 +112,11 @@ class Solver(object):
     
 
             # set boundaries to 0 
-            self.psi_mr[-1, :], self.psi_mr[:-1] = 0,0
-            self.psi_mz[-1,:], self.psi_mz[:,-1], self.psi_mz[:,0] = 0,0,0
+            self.psi_mr[-1, :], self.psi_mr[:,-1] = 0, 0
+            self.psi_mz[-1,:], self.psi_mz[:,-1], self.psi_mz[:,0] = 0, 0, 0
             
-            self.u_fr[-1, :], self.u_fr[:,-1] = 0,0
-            self.u_fz[-1, :], self.u_fz[:,-1], self.u_fz[:,0] = 0,0,0
+            self.u_fr[-1, :], self.u_fr[:,-1] = 0, 0
+            self.u_fz[-1, :], self.u_fz[:,-1], self.u_fz[:,0] = 0, 0, 0
 
             
 
@@ -99,6 +129,8 @@ class Solver(object):
 
             #print("sum delta_n_psi_mr: ", np.sum(self.psi_mr_1-self.psi_mr_2))
 
+            # to easier see values when iterating
+            time.sleep(1)
            
              
 
@@ -218,7 +250,7 @@ class Solver(object):
             self.psi_mr_1[1:-1, 2:]*E + self.psi_mr_1[1:-1, :-2]*F + self.psi_mr_2[1:-1, 1:-1]*G \
             + self.prob.mu_m/(2*self.dz)*( -1/self.r_array[1:-1,1:-1]*0*(self.psi_mz_1[1:-1, 2:] - self.psi_mz_1[1:-1, :-2]) \
             - 1/(2*self.dr)*(self.psi_mz_1[2:, 2:] - self.psi_mz_1[2:, :-2] - self.psi_mz_1[:-2, 2:] + self.psi_mz_1[:-2, :-2])) \
-            #+ self.u_fr_1[1:-1, 1:-1]*self.prob.gamma
+            + self.u_fr_1[1:-1, 1:-1]*self.prob.gamma
 
         psi = psi / A
 
@@ -240,9 +272,9 @@ class Solver(object):
 
         psi = self.psi_mz_1[2:, 1:-1]*B + self.psi_mz_1[1:-1,1:-1]*C + self.psi_mz_1[:-2, 1:-1]*D + \
             self.psi_mz_2[1:-1,1:-1]*E \
-            #+ self.prob.mu_m/(2*self.dz)*( -1/self.r_array[1:-1,1:-1]*(self.psi_mr_1[1:-1, 2:] - self.psi_mr_1[1:-1, :-2]) - 1/(2*self.dr)* \
-            #(self.psi_mr_1[2:, 2:] - self.psi_mr_1[2:, :-2] - self.psi_mr_1[:-2, 2:] + self.psi_mr_1[:-2, :-2]))
-            #+ self.prob.gamma*self.u_fz_1[1:-1,1:-1] \
+            + self.prob.mu_m/(2*self.dz)*( -1/self.r_array[1:-1,1:-1]*(self.psi_mr_1[1:-1, 2:] - self.psi_mr_1[1:-1, :-2]) - 1/(2*self.dr)* \
+            (self.psi_mr_1[2:, 2:] - self.psi_mr_1[2:, :-2] - self.psi_mr_1[:-2, 2:] + self.psi_mr_1[:-2, :-2]))\
+            + self.prob.gamma*self.u_fz_1[1:-1,1:-1]
           
 
         psi = psi / A

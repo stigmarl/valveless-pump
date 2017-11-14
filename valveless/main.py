@@ -25,10 +25,10 @@ def main():
 
     problem = Problem(L, D, f, psi_ca ,a_0, alpha_m, rho_t, mu_m, eta_f, gamma)
 
-    print("Creating the solver...")
+    print("Creating and setting up the solver...")
 
-    Lr = 1 #cm, i.e 100 microns
-    Lz = 1 #cm
+    Lr = 10 #mm, i.e 100 microns
+    Lz = 10 #mm
 
     Nr = 1000
     Nz = 1001
@@ -39,8 +39,7 @@ def main():
 
     solver = Solver(problem, Lr, Lz, Nr, Nz, dt, Nc)
 
-    print("Setting up solver...")
-    solver.setup()
+    print("Starting iterations...")
 
     solver.iterate()
 

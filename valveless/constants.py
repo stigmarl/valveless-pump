@@ -1,9 +1,9 @@
 #file that contains all physical constants 
 
-# Length of the along bubble the z axis [cm]
-L = 50
+# Length of the along bubble the z axis [mm]
+L = 50e-3
 
-# Length of transition region [mm]
+# Length of transition region [cm]
 D = L/3
 
 # Frequency of the driving wave [kHz]
@@ -12,18 +12,18 @@ f = 300
 # Shear wave propagation velocity in the tissue matrix [m/s]
 c_m = 10 
 
-# Diameter oscillation amplitude for the bubble [cm]
-psi_ca = 1e-4
+# Diameter oscillation amplitude for the bubble [mm]
+psi_ca = 1e-3
 
-# Radius of gas bubble [cm]
-a_0 = 5e-4
+# Radius of gas bubble [mm]
+a_0 = 5e-3
 
 # Relative volumes for tissue matrix and fluid respectively []
 alpha_m = 0.3
 alpha_f = 1 - alpha_m
 
-# Tissue mass density, including tissue matrix and fluid [kg/cm³]
-rho_t = 1e3*1e-4
+# Tissue mass density, including tissue matrix and fluid [kg/mm³]
+rho_t = 1e3*1e-6
 
 # Mass density of tissue matrix and fluid [kg/cm³]
 rho_m = alpha_m*rho_t
