@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.matlib
 import problem
 
 import time
@@ -79,7 +80,8 @@ class Solver(object):
         self.instant_rad_fz = np.zeros((self.Nr, self.Nz))          # array that holds radiation force in z at current timestep
 
         self.r_array = np.repeat(self.r, self.Nz+2).reshape(self.Nr+2, self.Nz+2) # array of r values in whole domain
-        self.z_array = np.repeat(self.z, self.Nr+2).reshape(self.Nr+2, self.Nz+2) # array of z values in whole domain
+        #self.z_array = np.repeat(self.z, self.Nr+2).reshape(self.Nr+2, self.Nz+2) # array of z values in whole domain
+        self.z_array = np.matlib.repmat(self.z, self.Nr+2, 1)
 
     def iterate(self):
         
@@ -96,12 +98,7 @@ class Solver(object):
             self.psi_mr_1[0,:] = self.prob.vec_psi_c_amplitude(self.z)*np.sin(omega*self.t[ii])
             self.u_fr_1[0,:] = omega*self.prob.vec_psi_c_amplitude(self.z)*np.cos(omega*self.t[ii])
 
-            print("max psi_mr_1: ", np.amax(self.psi_mr_1))
-            print("max psi_mz_1: ", np.amax(self.psi_mz_1))            
-            
-            print("max u_fr_1: ", np.amax(self.u_fr_1))
-            print("max u_fz_1: ", np.amax(self.u_fz_1))
-            print()
+
 
             # advance psi_m and u_f
             self.psi_mr[1:-1, 1:-1] = self.advance_psi_mr()
@@ -116,20 +113,28 @@ class Solver(object):
             self.psi_mz[-1,:], self.psi_mz[:,-1], self.psi_mz[:,0] = 0, 0, 0
             
             self.u_fr[-1, :], self.u_fr[:,-1] = 0, 0
-            self.u_fz[-1, :], self.u_fz[:,-1], self.u_fz[:,0] = 0, 0, 0
+            self.u_fz[-1, :], self.u_fz[:,-1] = 0, 0
 
             
 
             # update variables
-            self.psi_mr_2, self.psi_mr_1 = self.psi_mr_1.copy(), self.psi_mr.copy()
-            self.psi_mz_2, self.psi_mz_1 = self.psi_mz_1.copy(), self.psi_mz.copy()
+            self.psi_mr_2, self.psi_mr_1 = self.psi_mr_1, self.psi_mr
+            self.psi_mz_2, self.psi_mz_1 = self.psi_mz_1, self.psi_mz
             
-            self.u_fr_1 = self.u_fr.copy()
-            self.u_fz_1 = self.u_fz.copy()
+            self.u_fr_1 = self.u_fr
+            self.u_fz_1 = self.u_fz
 
             #print("sum delta_n_psi_mr: ", np.sum(self.psi_mr_1-self.psi_mr_2))
 
             # to easier see values when iterating
+
+            print("max psi_mr_1: ", np.amax(self.psi_mr_1))
+            print("max psi_mz_1: ", np.amax(self.psi_mz_1))
+
+            print("max u_fr_1: ", np.amax(self.u_fr_1))
+            print("max u_fz_1: ", np.amax(self.u_fz_1))
+            print()
+
             time.sleep(1)
            
              
@@ -137,7 +142,7 @@ class Solver(object):
 
     def advance_u_fr(self):
         delta_n_psi_mr = self.psi_mr_1-self.psi_mr_2
-        print("max delta_n_psi_mr: ", np.amax(delta_n_psi_mr))
+        print("max delta_n_psi_mr: ", np.amax(self.psi_mr_1) - np.amax(self.psi_mr_2))
         
         A = self.prob.rho_f/self.dt
 
@@ -149,14 +154,14 @@ class Solver(object):
             self.u_fr_1[1:-1,1:-1]/(self.dr) + self.u_fz_1[1:-1,1:-1]/self.dz
 
         # this term makes it explode
-        D = self.prob.eta_f*(-1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))*0
+        D = self.prob.eta_f*(-1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
 
         E = -self.u_fz_1[1:-1,1:-1]/self.dz + self.prob.eta_f/(self.dz**2)
 
         F = self.prob.eta_f/(self.dz**2)
 
         # this term also makes it explode
-        G = self.prob.gamma/self.dt*0
+        G = self.prob.gamma/self.dt
         
         #print("u_fr A: ", A)
         #print("u_fr B: ", B)
@@ -169,9 +174,9 @@ class Solver(object):
         #print("max u_fr: ", np.amax(self.u_fr_1))
         #print("sum delta_n_psi_mr: ", np.sum(delta_n_psi_mr))
 
-        u = self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
-            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
-            + self.instant_rad_fr
+        u = self.u_fr_1[:-2, 1:-1]*D#self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
+            #self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
+            #+ self.instant_rad_fr
 
         u = u / A
 
@@ -181,11 +186,10 @@ class Solver(object):
 
 
     def advance_u_fz(self):
-        # this also explodes because of psi_mz
-
 
         delta_n_psi_mz = self.psi_mz_1-self.psi_mz_2
-        
+
+        print("max delta_n_psi_mz: ", np.amax(self.psi_mz_1)-np.amax(self.psi_mz_2))
 
         A = self.prob.rho_f/self.dt
 
@@ -194,20 +198,20 @@ class Solver(object):
 
         C = -self.prob.gamma -self.prob.eta_f/(self.r_array[1:-1,1:-1]**2)- 2*self.prob.eta_f/(self.dr**2) - \
             2*self.prob.eta_f/(self.dz**2) + self.prob.rho_f/self.dt + \
-            self.u_fr_1[1:-1,1:-1]/self.dr + self.u_fr_1[1:-1,1:-1]/self.dz
+            self.u_fr_1[1:-1,1:-1]/self.dr + self.u_fz_1[1:-1,1:-1]/self.dz
 
         D =  self.prob.eta_f*(-1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
 
-        E = -self.u_fr_1[1:-1,1:-1]/self.dz + self.prob.eta_f/(self.dz**2)
+        E = -self.u_fz_1[1:-1,1:-1]/self.dz + self.prob.eta_f/(self.dz**2)
 
         F =  self.prob.eta_f/(self.dz**2)
 
         G = self.prob.gamma/self.dt
 
-
+        # delta_n_psi_mz
         u = self.u_fz_1[2:, 1:-1]*B + self.u_fz_1[1:-1, 1:-1]*C + self.u_fz_1[:-2, 1:-1]*D + \
             self.u_fz_1[1:-1, 2:]*E + self.u_fz_1[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G \
-            #+ self.instant_rad_fz
+            + self.instant_rad_fz
 
         u = u / A
 
@@ -224,7 +228,7 @@ class Solver(object):
 
         B = -self.prob.mu_m/(2*self.r_array[1:-1,1:-1]*self.dr)
 
-        C = 2*self.prob.rho_m/(self.dt**2) - self.prob.mu_m/(self.r_array[1:-1,1:-1]**2) -\
+        C = 2*self.prob.rho_m/(self.dt**2) - self.prob.mu_m/(np.power(self.r_array[1:-1,1:-1],2)) -\
              2*self.prob.mu_m/(self.dz**2) + self.prob.gamma/self.dt 
 
         D = - B
