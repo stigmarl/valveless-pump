@@ -149,8 +149,7 @@ class Solver(object):
 
 
         delta_n_psi_mr = self.psi_mr_1-self.psi_mr_2
-        print("max delta_n_psi_mr: ", np.amax(self.psi_mr_1) - np.amax(self.psi_mr_2))
-        
+
         A = self.prob.rho_f/self.dt
 
         B = -self.u_fr_1[1:-1, 1:-1]/self.dr + \
@@ -200,7 +199,6 @@ class Solver(object):
 
         delta_n_psi_mz = self.psi_mz_1-self.psi_mz_2
 
-        print("max delta_n_psi_mz: ", np.amax(self.psi_mz_1)-np.amax(self.psi_mz_2))
 
         A = self.prob.rho_f/self.dt
 
@@ -288,6 +286,7 @@ class Solver(object):
 
 
     def advance_psi_mz(self):
+        """
         A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
 
         B = self.prob.mu_m/(self.dr**2) + self.prob.mu_m/(2*self.r_array[1:-1,1:-1]*self.dr)
@@ -309,10 +308,19 @@ class Solver(object):
 
         #TODO: set boundary conditions
 
-        return psi 
-            
+        return psi
 
-    def calcualate_radiation_force(self, i):
+        """
+        RHS = self.prob.mu_m * ( drr(self.psi_mz_1, self.dr) + 1/self.r_array[1:-1, 1:-1]*(dr_central(self.psi_mz_1, self.dr) \
+                - dz_central(self.psi_mz_1, self.dz)) - drz(self.psi_mr_1, self.dr, self.dz)) + \
+                self.prob.gamma*(self.u_fz_1[1:-1,1:-1] - dt(self.psi_mz_1, self.psi_mz_2, self.dt))
+
+        psi = 2*self.psi_mz_1[1:-1,1:-1] - self.psi_mz_2[1:-1,1:-1] + RHS*(self.dt**2)/self.prob.rho_m
+
+        return psi
+
+
+    def calculate_radiation_force(self, i):
         self.radiation_force_fr[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fr_1[2:, 1:-1] - \
             self.u_fr_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fr_1[1:-1, 2:] - \
             self.u_fr_1[1:-1,:-2])/(2*self.dz)
