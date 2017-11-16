@@ -73,7 +73,7 @@ def dr_forward(f, dr):
 
 def dz_forward(f, dz):
 
-    return (f[1:-1, 2:] - f[1:-1, :-2])/(dz)
+    return (f[1:-1, 2:] - f[1:-1, 1:-1])/(dz)
 
 
 def drz(f, dr, dz):

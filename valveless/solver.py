@@ -54,7 +54,7 @@ class Solver(object):
         
         domain_points = (self.Nr+2, self.Nz+2)
 
-        self.r = np.linspace(0, self.Lr, self.Nr+2)+self.prob.a_0   # array of mesh points in r direction
+        self.r = np.linspace(0, self.Lr, self.Nr+2)                 # array of mesh points in r direction
         self.z = np.linspace(0, self.Lz, self.Nz+2)                 # array of mesh points in z direction
         self.dr = self.r[1] - self.r[0]
         self.dz = self.z[1] - self.z[0]
@@ -147,7 +147,7 @@ class Solver(object):
 
     def advance_u_fr(self):
 
-
+        """
         delta_n_psi_mr = self.psi_mr_1-self.psi_mr_2
 
         A = self.prob.rho_f/self.dt
@@ -190,8 +190,18 @@ class Solver(object):
 
         return u
 
+        """
 
+        RHS = -self.prob.gamma*(self.u_fr_1[1:-1,1:-1] - dt(self.psi_mr, self.psi_mr_1, self.dt)) + \
+                self.prob.eta_f*(-self.u_fr_1[1:-1,1:-1]/(self.r_array[1:-1,1:-1]**2) + \
+                dr_central(self.u_fr_1, self.dr)/self.r_array[1:-1,1:-1] + drr(self.u_fr_1, self.dr) + \
+                dzz(self.u_fr_1, self.dz))
 
+        LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fr_1, self.dr) + self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fr_1, self.dz)
+
+        u = self.u_fr_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS)
+
+        return u
 
 
 
