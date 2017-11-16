@@ -49,7 +49,7 @@ class Solver(object):
         
         domain_points = (self.Nr+2, self.Nz+2)
 
-        self.r = np.linspace(0, self.Lr, self.Nr+2)                 # array of mesh points in r direction
+        self.r = np.linspace(0, self.Lr, self.Nr+2)+self.prob.a_0   # array of mesh points in r direction
         self.z = np.linspace(0, self.Lz, self.Nz+2)                 # array of mesh points in z direction
         self.dr = self.r[1] - self.r[0]
         self.dz = self.z[1] - self.z[0]
@@ -174,8 +174,8 @@ class Solver(object):
         #print("max u_fr: ", np.amax(self.u_fr_1))
         #print("sum delta_n_psi_mr: ", np.sum(delta_n_psi_mr))
 
-        u = self.u_fr_1[:-2, 1:-1]*D#self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
-            #self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
+        u = self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
+            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
             #+ self.instant_rad_fr
 
         u = u / A
