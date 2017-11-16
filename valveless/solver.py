@@ -197,7 +197,8 @@ class Solver(object):
                 dr_central(self.u_fr_1, self.dr)/self.r_array[1:-1,1:-1] + drr(self.u_fr_1, self.dr) + \
                 dzz(self.u_fr_1, self.dz))
 
-        LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fr_1, self.dr) + self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fr_1, self.dz)
+        LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fr_1, self.dr) + \
+              self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fr_1, self.dz)
 
         u = self.u_fr_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS)
 
@@ -206,7 +207,7 @@ class Solver(object):
 
 
     def advance_u_fz(self):
-
+        """
         delta_n_psi_mz = self.psi_mz_1-self.psi_mz_2
 
 
@@ -237,11 +238,24 @@ class Solver(object):
         #TODO: set boundary conditions
 
         return u
+
+        """
+
+        RHS = -self.prob.gamma*(self.u_fz_1[1:-1,1:-1] - dt(self.psi_mz, self.psi_mz_1, self.dt)) + \
+            self.prob.eta_f * (dr_central(self.u_fz_1, self.dr)/self.r_array[1:-1,1:-1] + \
+            drr(self.u_fz_1, self.dz) + dzz(self.u_fz_1, self.dz))
+
+        LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fz_1, self.dr) + \
+              self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fz_1, self.dz)
+
+        u = self.u_fz_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS)
+
+        return u
             
 
     def advance_psi_mr(self): 
 
-        
+
         """
         A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
 
