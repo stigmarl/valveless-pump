@@ -147,51 +147,6 @@ class Solver(object):
 
     def advance_u_fr(self):
 
-        """
-        delta_n_psi_mr = self.psi_mr_1-self.psi_mr_2
-
-        A = self.prob.rho_f/self.dt
-
-        B = -self.u_fr_1[1:-1, 1:-1]/self.dr + \
-            self.prob.eta_f*(1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
-
-        C = -self.prob.gamma - self.prob.eta_f/(self.r_array[1:-1,1:-1]**2) - \
-            2*self.prob.eta_f/(self.dr**2) - 2*self.prob.eta_f/(self.dz**2) + self.prob.rho_f/self.dt + \
-            self.u_fr_1[1:-1,1:-1]/(self.dr) + self.u_fz_1[1:-1,1:-1]/self.dz
-
-        # this term makes it explode
-        D = self.prob.eta_f*(-1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
-
-        E = -self.u_fz_1[1:-1,1:-1]/self.dz + self.prob.eta_f/(self.dz**2)
-
-        F = self.prob.eta_f/(self.dz**2)
-
-        # this term also makes it explode
-        G = self.prob.gamma/self.dt
-        
-        #print("u_fr A: ", A)
-        #print("u_fr B: ", B)
-        #print("u_fr C: ", C)
-        #print("u_fr D: ", D)
-        #print("u_fr E: ", E)
-        #print("u_fr F: ", F)
-        #print("u_fr G: ", G)
-        
-        #print("max u_fr: ", np.amax(self.u_fr_1))
-        #print("sum delta_n_psi_mr: ", np.sum(delta_n_psi_mr))
-
-        u = self.u_fr_1[2:, 1:-1]*B + self.u_fr_1[1:-1, 1:-1]*C + self.u_fr_1[:-2, 1:-1]*D + \
-            self.u_fr_1[1:-1, 2:]*E + self.u_fr_1[1:-1, :-2]*F + delta_n_psi_mr[1:-1,1:-1]*G \
-            #+ self.instant_rad_fr
-
-        u = u / A
-
-        #TODO: set boundary conditions
-
-        return u
-
-        """
-
         RHS = -self.prob.gamma*(self.u_fr_1[1:-1,1:-1] - dt(self.psi_mr, self.psi_mr_1, self.dt)) + \
                 self.prob.eta_f*(-self.u_fr_1[1:-1,1:-1]/(self.r_array[1:-1,1:-1]**2) + \
                 dr_central(self.u_fr_1, self.dr)/self.r_array[1:-1,1:-1] + drr(self.u_fr_1, self.dr) + \
@@ -207,39 +162,7 @@ class Solver(object):
 
 
     def advance_u_fz(self):
-        """
-        delta_n_psi_mz = self.psi_mz_1-self.psi_mz_2
 
-
-        A = self.prob.rho_f/self.dt
-
-        B = -self.u_fr_1[1:-1, 1:-1]/self.dr + \
-            self.prob.eta_f*(1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
-
-        C = -self.prob.gamma -self.prob.eta_f/(self.r_array[1:-1,1:-1]**2)- 2*self.prob.eta_f/(self.dr**2) - \
-            2*self.prob.eta_f/(self.dz**2) + self.prob.rho_f/self.dt + \
-            self.u_fr_1[1:-1,1:-1]/self.dr + self.u_fz_1[1:-1,1:-1]/self.dz
-
-        D =  self.prob.eta_f*(-1/(2*self.r_array[1:-1,1:-1]*self.dr)+ 1/(self.dr**2))
-
-        E = -self.u_fz_1[1:-1,1:-1]/self.dz + self.prob.eta_f/(self.dz**2)
-
-        F =  self.prob.eta_f/(self.dz**2)
-
-        G = self.prob.gamma/self.dt
-
-        # delta_n_psi_mz
-        u = self.u_fz_1[2:, 1:-1]*B + self.u_fz_1[1:-1, 1:-1]*C + self.u_fz_1[:-2, 1:-1]*D + \
-            self.u_fz_1[1:-1, 2:]*E + self.u_fz_1[1:-1, :-2]*F + delta_n_psi_mz[1:-1,1:-1]*G \
-            + self.instant_rad_fz
-
-        u = u / A
-
-        #TODO: set boundary conditions
-
-        return u
-
-        """
 
         RHS = -self.prob.gamma*(self.u_fz_1[1:-1,1:-1] - dt(self.psi_mz, self.psi_mz_1, self.dt)) + \
             self.prob.eta_f * (dr_central(self.u_fz_1, self.dr)/self.r_array[1:-1,1:-1] + \
@@ -256,47 +179,6 @@ class Solver(object):
     def advance_psi_mr(self): 
 
 
-        """
-        A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
-
-        B = -self.prob.mu_m/(2*self.r_array[1:-1,1:-1]*self.dr)
-
-        C = 2*self.prob.rho_m/(self.dt**2) - self.prob.mu_m/(np.power(self.r_array[1:-1,1:-1],2)) -\
-             2*self.prob.mu_m/(self.dz**2) + self.prob.gamma/self.dt 
-
-        D = - B
-
-        E = -self.prob.mu_m/(self.dz**2)
-
-        F = -E 
-
-        G = -self.prob.rho_m/(self.dt**2)
-
-        
-        #print("psi_mr A: ", A)
-        #print("psi_mr B: ", B.shape)
-        #print("psi_mr C: ", C)
-        #print("psi_mr D: ", D)
-        #print("psi_mr E: ", E)
-        #print("psi_mr F: ", F)
-        #print("psi_mr G: ", G)
-        #print("max psi_mr: ", np.amax(self.psi_mr_1))
-        
-
-        psi = self.psi_mr_1[2:, 1:-1]*B + self.psi_mr_1[1:-1, 1:-1]*C + self.psi_mr_1[:-2, 1:-1]*D +\
-            self.psi_mr_1[1:-1, 2:]*E + self.psi_mr_1[1:-1, :-2]*F + self.psi_mr_2[1:-1, 1:-1]*G \
-            + self.prob.mu_m/(2*self.dz)*( -1/self.r_array[1:-1,1:-1]*0*(self.psi_mz_1[1:-1, 2:] - self.psi_mz_1[1:-1, :-2]) \
-            - 1/(2*self.dr)*(self.psi_mz_1[2:, 2:] - self.psi_mz_1[2:, :-2] - self.psi_mz_1[:-2, 2:] + self.psi_mz_1[:-2, :-2])) \
-            + self.u_fr_1[1:-1, 1:-1]*self.prob.gamma
-
-        psi = psi / A
-
-        #TODO: set boundary conditions
-
-        return psi
-
-        """
-
         RHS = self.prob.mu_m * (-1 / self.r_array[1:-1,1:-1] * (dr_central(self.psi_mr_1, self.dr) + \
                 dz_central(self.psi_mz_1, self.dz) + self.psi_mr_1[1:-1,1:-1]/self.r_array[1:-1,1:-1]) - \
                 drz(self.psi_mz_1, self.dr, self.dz) + dzz(self.psi_mr_1, self.dz)) + \
@@ -310,31 +192,7 @@ class Solver(object):
 
 
     def advance_psi_mz(self):
-        """
-        A = self.prob.rho_m/(self.dt**2) + self.prob.gamma/self.dt
 
-        B = self.prob.mu_m/(self.dr**2) + self.prob.mu_m/(2*self.r_array[1:-1,1:-1]*self.dr)
-
-        C = 2*self.prob.rho_m/(self.dt**2) - 2*self.prob.mu_m/(self.dr**2) + self.prob.gamma/self.dt 
-
-        D = self.prob.mu_m/(self.dr**2) - self.prob.mu_m/(2*self.r_array[1:-1,1:-1]*self.dr)
-
-        E = -self.prob.rho_m/(self.dt**2)
-
-        psi = self.psi_mz_1[2:, 1:-1]*B + self.psi_mz_1[1:-1,1:-1]*C + self.psi_mz_1[:-2, 1:-1]*D + \
-            self.psi_mz_2[1:-1,1:-1]*E \
-            + self.prob.mu_m/(2*self.dz)*( -1/self.r_array[1:-1,1:-1]*(self.psi_mr_1[1:-1, 2:] - self.psi_mr_1[1:-1, :-2]) - 1/(2*self.dr)* \
-            (self.psi_mr_1[2:, 2:] - self.psi_mr_1[2:, :-2] - self.psi_mr_1[:-2, 2:] + self.psi_mr_1[:-2, :-2]))\
-            + self.prob.gamma*self.u_fz_1[1:-1,1:-1]
-          
-
-        psi = psi / A
-
-        #TODO: set boundary conditions
-
-        return psi
-
-        """
         RHS = self.prob.mu_m * ( drr(self.psi_mz_1, self.dr) + 1/self.r_array[1:-1, 1:-1]*(dr_central(self.psi_mz_1, self.dr) \
                 - dz_central(self.psi_mz_1, self.dz)) - drz(self.psi_mr_1, self.dr, self.dz)) + \
                 self.prob.gamma*(self.u_fz_1[1:-1,1:-1] - dt(self.psi_mz_1, self.psi_mz_2, self.dt))

@@ -17,8 +17,8 @@ def main():
     alpha_m = constants.alpha_m
     alpha_f = constants.alpha_f
     rho_t = constants.rho_t
-    mu_m = constants.mu_m
-    eta_f = constants.eta_f
+    mu_m = constants.mu_m/100
+    eta_f = constants.eta_f/100 #small eta does to that it doesn't explode
 
     # gamma is "small"
     gamma = 1e-8
@@ -27,13 +27,13 @@ def main():
 
     print("Creating and setting up the solver...")
 
-    Lr = 100e-6 #m, i.e 100 microns
-    Lz = 100e-6 #m
+    Lr = 200e-6 #m, i.e 100 microns
+    Lz = 200e-6 #m
 
     Nr = 1000
     Nz = 1001
 
-    dt = 1/(problem.f * 21)
+    dt = 1/(problem.f * 20)
 
     Nc = 100
 

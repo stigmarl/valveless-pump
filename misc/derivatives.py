@@ -2,7 +2,7 @@ import numpy as np
 
 
 
-def dtt(f,f_1,f_2, dt):
+def dtt(f, f_1, f_2, dt):
     """
     Second order central difference differentiation in time.
 
@@ -23,7 +23,7 @@ def dtt(f,f_1,f_2, dt):
         The differentiated variable.
 
     """
-    return (f[1:-1,1:-1] - 2*f_1[1:-1,1:-1] + f_2[1:-1,1:-1])/(dt*dt)
+    return (f[1:-1,1:-1] - 2*f_1[1:-1,1:-1] + f_2[1:-1,1:-1])/(dt**2)
 
 
 def dr_central(f, dr):
@@ -48,7 +48,7 @@ def dr_central(f, dr):
 
 def dzz(f, dz):
 
-    return (f[1:-1, 2:] - 2*f[1:-1,1:-1] + f[1:-1, :-2])/(dz*dz)
+    return (f[1:-1, 2:] - 2*f[1:-1,1:-1] + f[1:-1, :-2])/(dz**2)
 
 
 def dt(f, f_1, dt):
@@ -58,7 +58,7 @@ def dt(f, f_1, dt):
 
 def drr(f, dr):
 
-    return (f[2:,1:-1] - 2*f[1:-1,1:-1] + f[:-2, 1:-1])/(dr*dr)
+    return (f[2:,1:-1] - 2*f[1:-1,1:-1] + f[:-2, 1:-1])/(dr**2)
 
 
 def dz_central(f, dz):
