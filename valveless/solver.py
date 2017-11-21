@@ -9,6 +9,10 @@ from misc.derivatives import *
 
 import time
 
+import matplotlib
+import matplotlib.pyplot as plt
+
+
 
 
 class Solver(object):
@@ -81,23 +85,31 @@ class Solver(object):
         self.radiation_force_fr = np.zeros((self.Nr,self.Nz,self.Np)) # array that stores the values of u_fr from the last period
         self.radiation_force_fz = self.radiation_force_fr.copy()
 
-        self.instant_rad_fr = np.zeros((self.Nr, self.Nz))          # array that holds radiation force in r at current timestep
-        self.instant_rad_fz = np.zeros((self.Nr, self.Nz))          # array that holds radiation force in z at current timestep
+        self.instant_rad_fr = np.zeros(domain_points)          # array that holds radiation force in r at current timestep
+        self.instant_rad_fz = np.zeros(domain_points)          # array that holds radiation force in z at current timestep
 
-        self.r_array = np.repeat(self.r, self.Nz+2).reshape(self.Nr+2, self.Nz+2) # array of r values in whole domain
+        #self.r_array = np.matlib.repmat(self.r, self.Nz+2,1).transpose() # array of r values in whole domain
         #self.z_array = np.repeat(self.z, self.Nr+2).reshape(self.Nr+2, self.Nz+2) # array of z values in whole domain
-        self.z_array = np.matlib.repmat(self.z, self.Nr+2, 1)
+        #self.z_array = np.matlib.repmat(self.z, self.Nr+2, 1)
+        self.z_array, self.r_array = np.meshgrid(self.z, self.r)
+
+
+        matplotlib.rcParams['text.usetex'] = True
+        matplotlib.rcParams['text.latex.unicode'] = True
 
     def iterate(self):
         
         omega = 2*np.pi*self.prob.f
 
-        for ii in range(40):
+        for ii in range(32):
             
             print("Iterating at loop ", ii)
 
+            if ii == 399:
+                print("trollolo")
+
             # calculate radiation force
-            #self.calcualate_radiation_force(ii)
+            self.calculate_radiation_force(ii)
 
             # set boundary conditions for psi_mr and u_fr at r = 0
             self.psi_mr_1[0,:] = self.prob.vec_psi_c_amplitude(self.z)*np.sin(omega*self.t[ii])
@@ -129,6 +141,8 @@ class Solver(object):
             self.u_fr_1 = self.u_fr
             self.u_fz_1 = self.u_fz
 
+
+
             #print("sum delta_n_psi_mr: ", np.sum(self.psi_mr_1-self.psi_mr_2))
 
             # to easier see values when iterating
@@ -137,12 +151,39 @@ class Solver(object):
             print("max psi_mz_1: ", np.amax(self.psi_mz_1))
 
             print("max u_fr_1: ", np.amax(self.u_fr_1))
-            print("max u_fz_1: ", np.amax(self.u_fz_1))
+            print("min u_fz_1: ", np.amin   (self.u_fz_1))
             print()
 
-            time.sleep(1)
-           
-             
+        plt.figure(0)
+        X,Y = np.meshgrid(self.z[1:-1], self.r[1:-1])
+        plt.subplot(121)
+        plt.title(r'\psi_{r}', fontsize=20)
+        #plt.xlim(0, np.amax(X)*1e6)
+        #plt.ylim(0, np.amax(Y)*1e6)
+        plt.xlabel(r'$z (\mu m)$', fontsize=16)
+        plt.ylabel(r'$r (\mu m)$', fontsize=16)
+        stride = 10
+        skip = (slice(3, -1, stride), slice(2, -1, stride))
+        #self.u_fr_1[ self.u_fr_1 == 0] = np.nanself.u_fz_1[skip], self.u_fr_1[skip]
+        #self.u_fz_1[ self.u_fz_1 == 0] = np.nan
+
+        U_psi, V_psi = self.psi_mz_1[skip], self.psi_mr_1[skip]
+
+        #plt.streamplot(X, Y, self.u_fr_1[1:-1,1:-1], self.u_fz_1[1:-1,1:-1],
+        #               color='b', linewidth=2, cmap=plt.cm.autumn, density=4)
+        plt.quiver(U_psi, V_psi, scale=2e-8)
+
+        plt.subplot(122)
+        plt.title(r'u_{f}', fontsize=20)
+        U_f, V_f = self.u_fz_1[skip], self.u_fr_1[skip]
+        speed = np.sqrt(U_f**2 + V_f**2)
+        plt.xlabel(r'$z (\mu m)$', fontsize=16)
+        plt.ylabel(r'$r (\mu m)$', fontsize=16)
+        plt.quiver(U_f, V_f, scale=1e-2)
+
+        plt.show()
+
+
 
 
     def advance_u_fr(self):
@@ -155,7 +196,7 @@ class Solver(object):
         LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fr_1, self.dr) + \
               self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fr_1, self.dz)
 
-        u = self.u_fr_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS)
+        u = self.u_fr_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS + self.instant_rad_fr)
 
         return u
 
@@ -171,7 +212,7 @@ class Solver(object):
         LHS = self.u_fr_1[1:-1,1:-1]*dr_forward(self.u_fz_1, self.dr) + \
               self.u_fz_1[1:-1,1:-1]*dz_forward(self.u_fz_1, self.dz)
 
-        u = self.u_fz_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS)
+        u = self.u_fz_1[1:-1,1:-1] + self.dt/self.prob.rho_f*(RHS-LHS + self.instant_rad_fz)
 
         return u
             
@@ -203,23 +244,21 @@ class Solver(object):
 
 
     def calculate_radiation_force(self, i):
-        self.radiation_force_fr[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fr_1[2:, 1:-1] - \
-            self.u_fr_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fr_1[1:-1, 2:] - \
-            self.u_fr_1[1:-1,:-2])/(2*self.dz)
+        self.radiation_force_fr[:,:,i % self.Np] = self.u_fr_1[1:-1,1:-1]*dr_central(self.u_fr_1, self.dr) - \
+            self.u_fz_1[1:-1,1:-1]*dz_central(self.u_fr_1, self.dz)
         
-        self.radiation_force_fz[:,:,i % self.Np] = self.u_fr_1[1:-1, 1:-1]*(self.u_fz_1[2:, 1:-1] - \
-            self.u_fz_1[:-2, 1:-1])/(2*self.dr) + self.u_fz_1[1:-1, 1:-1]*(self.u_fz_1[1:-1, 2:] - \
-            self.u_fz_1[1:-1,:-2])/(2*self.dz)
+        self.radiation_force_fz[:,:,i % self.Np] = self.u_fr_1[1:-1,1:-1]*dr_central(self.u_fz_1, self.dr) - \
+            self.u_fz_1[1:-1,1:-1]*dz_central(self.u_fz_1, self.dz)
 
         if i < self.Np:          # first period
-            rad_force_fr = np.mean(np.dot(self.radiation_force_fr[:,:,i], self.dt), axis=2)
-            rad_force_fz = np.mean(np.dot(self.radiation_force_fz[:,:,i], self.dt), axis=2)
+            rad_force_fr = np.ndarray.mean(self.radiation_force_fr[:,:,:i+1]*self.dt, axis=2)
+            rad_force_fz = np.ndarray.mean(self.radiation_force_fz[:,:,:i+1]*self.dt, axis=2)
                 
         else:               # second period onwards
-            rad_force_fr = np.mean(np.dot(self.radiation_force_fr[:,:,:], self.dt), axis=2)
-            rad_force_fz = np.mean(np.dot(self.radiation_force_fz[:,:,:], self.dt), axis=2)
+            rad_force_fr = np.mean(self.radiation_force_fr[:,:,:]*self.dt, axis=2)
+            rad_force_fz = np.mean(self.radiation_force_fz[:,:,:]* self.dt, axis=2)
 
-        self.instant_rad_fr = -self.prob.rho_t*rad_force_fr 
+        self.instant_rad_fr = -self.prob.rho_t*rad_force_fr
         self.instant_rad_fz = -self.prob.rho_t*rad_force_fz
 
 

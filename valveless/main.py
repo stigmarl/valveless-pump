@@ -17,8 +17,8 @@ def main():
     alpha_m = constants.alpha_m
     alpha_f = constants.alpha_f
     rho_t = constants.rho_t
-    mu_m = constants.mu_m/100
-    eta_f = constants.eta_f/100 #small eta does to that it doesn't explode
+    mu_m = constants.mu_m/1000
+    eta_f = constants.eta_f/1000 #small eta does to that it doesn't explode
 
     # gamma is "small"
     gamma = 1e-8
@@ -31,9 +31,9 @@ def main():
     Lz = 200e-6 #m
 
     Nr = 1000
-    Nz = 1001
+    Nz = 1000
 
-    dt = 1/(problem.f * 20)
+    dt = 1/(problem.f * 30)
 
     Nc = 100
 
