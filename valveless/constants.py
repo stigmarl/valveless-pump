@@ -25,7 +25,7 @@ alpha_f = 1 - alpha_m
 # Tissue mass density, including tissue matrix and fluid [kg/m³]
 rho_t = 1e3
 
-# Mass density of tissue matrix and fluid [kg/m³]
+# Mass effective  density of tissue matrix and fluid [kg/m³]
 rho_m = alpha_m*rho_t
 rho_f = alpha_f*rho_t
 

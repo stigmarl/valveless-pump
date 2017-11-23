@@ -76,6 +76,16 @@ def dz_forward(f, dz):
     return (f[1:-1, 2:] - f[1:-1, 1:-1])/(dz)
 
 
+def dr_backward(f, dr):
+
+    return (f[1:-1, 1:-1] - f[0:-2, 1:-1])/(dr)
+
+
+def dz_backward(f, dz):
+
+    return (f[1:-1, 1:-1] - f[1:-1, 0:-2])/(dz)
+
+
 def drz(f, dr, dz):
 
     return (f[2:, 2:] - f[:-2, 2:] - f[2:, :-2] + f[:-2, :-2])/(4*dr*dz)
