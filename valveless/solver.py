@@ -102,9 +102,11 @@ class Solver(object):
         
         omega = 2*np.pi*self.prob.f
 
-        hl, = plt.plot([], [])
+        fig = plt.figure(0)
 
-        for ii in range(100):
+        sub1 = fig.add_subplot(212)
+
+        for ii in range(40):
             
             print("Iterating at loop ", ii)
 
@@ -118,8 +120,10 @@ class Solver(object):
                 0.5*( (1+np.tanh(self.t[ii]/self.T))*np.cos(omega*self.t[ii]) + \
                       1/self.T*(1-np.tanh(self.t[ii]/self.T)**2)*np.sin(omega*self.t[ii]))
 
-            #self.u_fr[:,0] = 4/3*self.u_fr_1[:,1] - 1/3*self.u_fr_1[:,2]
-            #self.psi_mr[:, 0] = 4 / 3 * self.psi_mr_1[:, 1] - 1 / 3 * self.psi_mr_1[:, 2]
+            #self.u_fr_1[:,0] = 4/3*self.u_fr_1[:,1] - 1/3*self.u_fr_1[:,2]
+            #self.psi_mr_1[:, 0] = 4/3 * self.psi_mr_1[:, 1] - 1 / 3 * self.psi_mr_1[:, 2]
+            self.u_fr_1[:, 0] = 4 / 3 * self.u_fr_1[:, 1] - 1 / 3 * self.u_fr_1[:, 2]
+            self.psi_mr_1[:, 0] = 4 / 3 * self.psi_mr_1[:, 1] - 1 / 3 * self.psi_mr_1[:, 2]
 
             # advance psi_m and u_f
             self.psi_mr[1:-1, 1:-1] = self.advance_psi_mr()
@@ -127,20 +131,19 @@ class Solver(object):
             self.u_fr[1:-1, 1:-1] = self.advance_u_fr()
             self.u_fz[1:-1, 1:-1] = self.advance_u_fz()
 
+            #self.psi_mr[:, 0] = 4 / 3 * self.psi_mr_1[:, 1] - 1 / 3 * self.psi_mr_1[:, 2]
+
     
 
             # set boundaries
             self.psi_mr[-1, :], self.psi_mr[:,-1] = 0, 0
             self.psi_mz[-1,:], self.psi_mz[:,-1], self.psi_mz[:,0] = 0, 0, 0
 
-            # self.u_fr[:,0] = 4/3*self.u_fr_1[:,1] - 1/3*self.u_fr_1[:,2]
-            self.psi_mr[:, 0] = 4 / 3 * self.psi_mr[:, 1] - 1 / 3 * self.psi_mr[:, 2]
 
             self.u_fr[-1, :], self.u_fr[:,-1] = 0, 0
 
             self.u_fz[-1, :], self.u_fz[:,-1] = 0, 0
 
-            
 
             # update variables
             self.psi_mr_2, self.psi_mr_1 = self.psi_mr_1.copy(), self.psi_mr.copy()
@@ -150,11 +153,12 @@ class Solver(object):
             self.u_fz_1 = self.u_fz.copy()
 
 
-            plt.title(r'u_{fr}', fontsize=20)
-            plt.plot(self.r[1:] * 1e6, self.u_fr[1:, 1])
-            plt.xlabel(r'$r (\mu m)$', fontsize=16)
-            plt.ylabel('amplitude')
-            plt.draw()
+            sub1.set_title(r'u_{fr}', fontsize=20)
+            sub1.plot(self.r[1:] * 1e6, self.u_fr[1:, 1])
+            sub1.set_xlim((0,50))
+            sub1.set_xlabel(r'$r (\mu m)$', fontsize=16)
+            sub1.set_ylabel(r'u_{fr}')
+            sub1.plot()
 
             """
             stride = 10
@@ -181,39 +185,37 @@ class Solver(object):
             print("min u_fz_1: ", np.amin   (self.u_fz_1))
             print()
 
-        plt.figure(0)
+
         X,Y = np.meshgrid(self.z[1:-1], self.r[1:-1])
-        plt.subplot(131)
-        plt.title(r'\psi_{r}', fontsize=20)
-        #plt.xlim(0, np.amax(X)*1e6)
-        #plt.ylim(0, np.amax(Y)*1e6)
-        plt.xlabel(r'$z (\mu m)$', fontsize=16)
-        plt.ylabel(r'$r (\mu m)$', fontsize=16)
-        stride = 4
-        skip = (slice(3, -1, stride), slice(2, -1, stride))
-        #self.u_fr_1[ self.u_fr_1 == 0] = np.nanself.u_fz_1[skip], self.u_fr_1[skip]
-        #self.u_fz_1[ self.u_fz_1 == 0] = np.nan
+        sub2 = fig.add_subplot(221)
+        sub2.set_title(r'\psi_{r}', fontsize=20)
+        plt.xlim((1, 20))
+        plt.ylim((5, 20))
+        sub2.set_xlabel(r'$z (\mu m)$', fontsize=16)
+        sub2.set_ylabel(r'$r (\mu m)$', fontsize=16)
 
-        U_psi, V_psi = self.psi_mz_1[skip]*0, self.psi_mr_1[skip]
+        U_psi, V_psi = self.psi_mz_1[1:,1:], self.psi_mr_1[1:,1:]
+        magnitude_psi = np.sqrt(U_psi**2 + V_psi**2)
 
-        #plt.streamplot(X, Y, self.u_fr_1[1:-1,1:-1], self.u_fz_1[1:-1,1:-1],
-        #               color='b', linewidth=2, cmap=plt.cm.autumn, density=4)
-        plt.quiver(U_psi, V_psi, scale=1e-8)
+        strm_psi = sub2.streamplot(self.z[1:]*1e6, self.r[1:]*1e6, U_psi, V_psi,
+                      color=magnitude_psi,cmap=plt.cm.autumn, density=15)
+        fig.colorbar(strm_psi.lines)
 
-        plt.subplot(132)
+        plt.subplot(222)
         plt.title(r'u_{f}', fontsize=20)
-        U_f, V_f = self.u_fz_1[skip], self.u_fr_1[skip]
-        speed = np.sqrt(U_f**2 + V_f**2)
+
+
+        U_f, V_f = self.u_fz_1[1:,:], self.u_fr_1[1:,:]
+        magnitude_u = np.sqrt(U_f**2 + V_f**2)
+
         plt.xlabel(r'$z (\mu m)$', fontsize=16)
         plt.ylabel(r'$r (\mu m)$', fontsize=16)
-        plt.quiver(U_f, V_f, scale=2)
-        """
-        plt.subplot(133)
-        plt.title(r'u_{fr}', fontsize=20)
-        plt.plot(self.r[1:]*1e6, self.u_fr[1:,1])
-        plt.xlabel(r'$r (\mu m)$', fontsize=16)
-        plt.ylabel('amplitude')
-        """
+        plt.xlim((0, 20))
+        plt.ylim((self.r[1]*1e6, 20))
+        strm_u = plt.streamplot(self.z*1e6, self.r[1:]*1e6, U_f, V_f,
+                       color=magnitude_u, cmap=plt.cm.autumn, density=5)
+        plt.colorbar(strm_u.lines)
+
         plt.show()
 
 
