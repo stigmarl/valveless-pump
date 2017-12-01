@@ -94,19 +94,41 @@ class Solver(object):
         self.z_array, self.r_array = np.meshgrid(self.z, self.r)
 
 
-        matplotlib.rcParams['text.usetex'] = True
-        matplotlib.rcParams['text.latex.unicode'] = True
+        # matplotlib stuff
+        pgf_with_latex = {  # setup matplotlib to use latex for output# {{{
+            "pgf.texsystem": "pdflatex",  # change this if using xetex or lautex
+            "text.usetex": True,  # use LaTeX to write all text
+            "text.latex.unicode": True,
+            "font.family": "serif",
+            "font.serif": [],  # blank entries should cause plots
+            "font.sans-serif": [],  # to inherit fonts from the document
+            "font.monospace": [],
+            "axes.labelsize": 10,  # LaTeX default is 10pt font.
+            "font.size": 10,
+            "legend.fontsize": 8,  # Make the legend/label fonts
+            "xtick.labelsize": 8,  # a little smaller
+            "ytick.labelsize": 8,
+            #"figure.figsize": figsize(0.9),  # default fig size of 0.9 textwidth
+            "pgf.preamble": [
+                r"\usepackage[utf8x]{inputenc}",  # use utf8 fonts
+                r"\usepackage[T1]{fontenc}",  # plots will be generated
+                r"\usepackage[detect-all,locale=DE]{siunitx}",
+            ]  # using this preamble
+        }
+        matplotlib.rcParams.update(pgf_with_latex)
 
 
     def iterate(self):
         
         omega = 2*np.pi*self.prob.f
 
-        fig = plt.figure(0)
+        iters = 120
 
-        sub1 = fig.add_subplot(212)
+        numplots = 5
 
-        for ii in range(40):
+        u_time = np.zeros((numplots,iters))
+
+        for ii in range(iters):
             
             print("Iterating at loop ", ii)
 
@@ -153,28 +175,10 @@ class Solver(object):
             self.u_fz_1 = self.u_fz.copy()
 
 
-            sub1.set_title(r'u_{fr}', fontsize=20)
-            sub1.plot(self.r[1:] * 1e6, self.u_fr[1:, 1])
-            sub1.set_xlim((0,50))
-            sub1.set_xlabel(r'$r (\mu m)$', fontsize=16)
-            sub1.set_ylabel(r'u_{fr}')
-            sub1.plot()
 
-            """
-            stride = 10
-            skip = (slice(3, -1, stride), slice(2, -1, stride))
-            plt.figure(0)
-            plt.title(r'u_{f}', fontsize=20)
-            U_f, V_f = self.u_fz_1[skip], self.u_fr_1[skip]
-            speed = np.sqrt(U_f ** 2 + V_f ** 2)
-            plt.xlabel(r'$z (\mu m)$', fontsize=16)
-            plt.ylabel(r'$r (\mu m)$', fontsize=16)
-            plt.quiver(U_f, V_f, scale=1e2)
-            plt.show()
-            """
+            # update variable used for plotting
+            u_time[:, ii] = self.u_fr_1[1:numplots+1,1]
 
-
-            #print("sum delta_n_psi_mr: ", np.sum(self.psi_mr_1-self.psi_mr_2))
 
             # to easier see values when iterating
 
@@ -185,40 +189,33 @@ class Solver(object):
             print("min u_fz_1: ", np.amin   (self.u_fz_1))
             print()
 
+        self.plot_interstitium(u_time, numplots, ii)
 
-        X,Y = np.meshgrid(self.z[1:-1], self.r[1:-1])
-        sub2 = fig.add_subplot(221)
-        sub2.set_title(r'\psi_{r}', fontsize=20)
-        plt.xlim((1, 20))
-        plt.ylim((5, 20))
-        sub2.set_xlabel(r'$z (\mu m)$', fontsize=16)
-        sub2.set_ylabel(r'$r (\mu m)$', fontsize=16)
+    def plot_interstitium(self, u_time, numplots, ntimesteps):
 
-        U_psi, V_psi = self.psi_mz_1[1:,1:], self.psi_mr_1[1:,1:]
-        magnitude_psi = np.sqrt(U_psi**2 + V_psi**2)
+        fig = plt.figure(0)
 
-        strm_psi = sub2.streamplot(self.z[1:]*1e6, self.r[1:]*1e6, U_psi, V_psi,
-                      color=magnitude_psi,cmap=plt.cm.autumn, density=15)
-        fig.colorbar(strm_psi.lines)
+        sub1 = fig.add_subplot(211)
+        for i in range(numplots):
+            sub1.plot((self.t[:ntimesteps + 1] - self.t[0]) * 1e6, u_time[i, :], label='row %d' % i)
+            sub1.set_xlabel(r't [$\mu s$]', fontsize=16)
+            sub1.set_ylabel(r'u [$m/s$]', fontsize=16)
+            sub1.set_title('fluid velocity', fontsize=18)
 
-        plt.subplot(222)
-        plt.title(r'u_{f}', fontsize=20)
+        sub1.legend(fontsize=14)
+        sub1.grid(True, which='both')
 
+        sub2 = fig.add_subplot(212)
+        for j in range(numplots):
+            sub2.plot((self.t[:ntimesteps + 1] - self.t[0]) * 1e6, np.cumsum(u_time[j, :]) * self.dt * 1e6, label='row %d' % j)
+            sub2.set_xlabel(r't [$\mu s$]', fontsize=16)
+            sub2.set_ylabel(r'$\Psi$ [$\mu m$]', fontsize=16)
+            sub2.set_title('displacement from fluid velocity', fontsize=18)
 
-        U_f, V_f = self.u_fz_1[1:,:], self.u_fr_1[1:,:]
-        magnitude_u = np.sqrt(U_f**2 + V_f**2)
-
-        plt.xlabel(r'$z (\mu m)$', fontsize=16)
-        plt.ylabel(r'$r (\mu m)$', fontsize=16)
-        plt.xlim((0, 20))
-        plt.ylim((self.r[1]*1e6, 20))
-        strm_u = plt.streamplot(self.z*1e6, self.r[1:]*1e6, U_f, V_f,
-                       color=magnitude_u, cmap=plt.cm.autumn, density=5)
-        plt.colorbar(strm_u.lines)
+        sub2.legend(fontsize=14)
+        sub2.grid(True, which='both')
 
         plt.show()
-
-
 
 
     def advance_u_fr(self):
