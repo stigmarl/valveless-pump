@@ -28,14 +28,14 @@ def main():
 
     print("Creating and setting up the solver...")
 
-    Lr = 100e-6 #m, i.e 100 microns
-    Lz = 100e-6 #m
+    Lr = 50e-6 #m, i.e 100 microns
+    Lz = 50e-6 #m
     # error / instability is inversely proportional with domain SIZE
     # this is due to the Dirichlet boundary conditions not being valid anymore for a "small" domain.
 
-    Nr = 25
-    Nz = 25
-    dt = np.float64(1/(problem.f * 100))
+    Nr = 50
+    Nz = 50
+    dt = np.float64(1/(problem.f * 3e7))
 
     Nc = 6
 

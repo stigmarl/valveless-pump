@@ -240,7 +240,7 @@ class Solver(object):
 
         CFL = self.dt / (self.dr ** 2)
 
-        save_fig_string = "_gamma%.3e_cfl%.3e_L%d_N%d.png" % (self.prob.gamma, CFL, self.Lr*1e6, self.Nr)
+        save_fig_string = "_gamma%.3e_cfl%.3e_L%d_N%d_dt%.3e.png" % (self.prob.gamma, CFL, self.Lr*1e6, self.Nr, self.dt)
 
         fig = plt.figure(0, figsize=(7,8))
 
